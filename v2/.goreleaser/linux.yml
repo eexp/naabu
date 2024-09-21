@@ -1,26 +1,27 @@
 env:
   - GO111MODULE=on
+  - CGO_ENABLED=1
+  - CGO_LDFLAGS_ALLOW='-static'
 before:
   hooks:
     - go mod tidy
 project_name: naabu
 builds:
   - id: naabu-linux
-    ldflags:
-      - -s -w
-    binary: naabu
     env:
-      - CGO_ENABLED=1
+      - PKG_CONFIG_PATH=/usr/lib/pkgconfig
+    ldflags:
+      - -s -w -extldflags "-static"
+    binary: naabu
     main: ./cmd/naabu/main.go
     goos:
       - linux
     goarch:
       - amd64
-      # - arm64
-      
+
 archives:
-- format: zip
-  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macOS{{ else }}{{ .Os }}{{ end }}_{{ .Arch }}'
+  - format: zip
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macOS{{ else }}{{ .Os }}{{ end }}_{{ .Arch }}'
 
 checksum:
   name_template: "{{ .ProjectName }}-linux-checksums.txt"
