@@ -1,17 +1,18 @@
 package runner
 
 import (
-	"os"
-	"time"
-
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/projectdiscovery/goflags"
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/naabu/v2/pkg/privileges"
 	"github.com/projectdiscovery/naabu/v2/pkg/result"
 	"github.com/projectdiscovery/naabu/v2/pkg/scan"
 	fileutil "github.com/projectdiscovery/utils/file"
-
-	"github.com/projectdiscovery/goflags"
-	"github.com/projectdiscovery/gologger"
 	updateutils "github.com/projectdiscovery/utils/update"
+	"log"
+	"os"
+	"time"
 )
 
 // Options contains the configuration options for tuning
@@ -66,6 +67,7 @@ type Options struct {
 	OnReceive         result.ResultFn // callback on response receive
 	CSV               bool
 	Mysql             string
+	Mysqldb           *sql.DB
 	Resume            bool
 	ResumeCfg         *ResumeCfg
 	Stream            bool
@@ -138,7 +140,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output to (optional)"),
 		flagSet.BoolVarP(&options.JSON, "json", "j", false, "write output in JSON lines format"),
 		flagSet.BoolVar(&options.CSV, "csv", false, "write output in csv format"),
-		flagSet.StringVarP(&options.Mysql, "mysql", "sq", "", "write to mysql\tuser:password@tcp(127.0.0.1:3306)/database"),
+		flagSet.StringVarP(&options.Mysql, "mysql", "db", "", "write to mysql\tuser:password@tcp(127.0.0.1:3306)/database"),
 	)
 
 	flagSet.CreateGroup("config", "Configuration",
@@ -262,6 +264,16 @@ func ParseOptions() *Options {
 	err := options.ValidateOptions()
 	if err != nil {
 		gologger.Fatal().Msgf("Program exiting: %s\n", err)
+	}
+
+	//Validate mysql connection
+	if options.Mysql != "" {
+		options.Mysqldb, err = sql.Open("mysql", options.Mysql)
+		if err != nil {
+			log.Fatalf("could not open db connection: %v", err)
+			os.Exit(0)
+		}
+
 	}
 
 	return options

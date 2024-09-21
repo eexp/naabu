@@ -3,7 +3,7 @@ package runner
 import (
 	"testing"
 
-	"github.com/projectdiscovery/dnsx/libs/dnsx"
+	"github.com/eexp/dnsx/libs/dnsx"
 	"github.com/projectdiscovery/naabu/v2/pkg/scan"
 	"github.com/stretchr/testify/assert"
 )

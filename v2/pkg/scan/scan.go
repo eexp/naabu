@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projectdiscovery/cdncheck"
+	"github.com/eexp/cdncheck"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/ipranger"
 	"github.com/projectdiscovery/naabu/v2/pkg/port"

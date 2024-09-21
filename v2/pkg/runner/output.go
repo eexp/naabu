@@ -185,25 +185,45 @@ func writeCSVRow(data *Result, writer *csv.Writer) {
 }
 
 func WriteMysqlOutput(host, ip string, ports []*port.Port, outputCDN bool, isCdn bool, cdnName string, db *sql.DB) error {
-	timestamp := time.Now().UTC()
-
 	// Check if the database connection is valid
 	if db == nil {
 		return errors.New("nil database connection")
 	}
 
 	// Prepare the insert statement
-	stmt, err := db.Prepare("INSERT INTO port_scan_results (timestamp, host, ip, port, protocol, tls, cdn, cdn_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := db.Prepare("INSERT INTO port_scan_results (domain, ip, port, protocol, tls, cdn, cdn_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return errors.Wrap(err, "could not prepare insert statement")
 	}
 	defer stmt.Close()
 
 	for _, p := range ports {
-		_, err := stmt.Exec(timestamp, host, ip, p.Port, p.Protocol.String(), p.TLS, isCdn, cdnName)
+		_, err := stmt.Exec(host, ip, p.Port, p.Protocol.String(), p.TLS, isCdn, cdnName)
 		if err != nil {
-			return errors.Wrap(err, "could not execute insert statement")
+			gologger.Error().Msgf("could not execute insert statement for port %d: %v", p.Port, err)
 		}
+	}
+
+	return nil
+}
+
+func InsertSingleRecordToMysql(host, ip string, port int, protocol, tls, cdnName string, isCdn bool, timestamp time.Time, db *sql.DB) error {
+	// 检查数据库连接是否有效
+	if db == nil {
+		return errors.New("nil database connection")
+	}
+
+	// 准备插入语句
+	stmt, err := db.Prepare("INSERT INTO port_scan_results (domain, ip, port, protocol, tls, cdn, cdn_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return errors.Wrap(err, "could not prepare insert statement")
+	}
+	defer stmt.Close()
+
+	// 执行插入语句
+	_, err = stmt.Exec(host, ip, port, protocol, tls, isCdn, cdnName)
+	if err != nil {
+		return errors.Wrapf(err, "could not execute insert statement for port %d", port)
 	}
 
 	return nil

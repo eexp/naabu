@@ -40,7 +40,7 @@ func (options *Options) ValidateOptions() error {
 		return errOutputMode
 	}
 
-	if options.JSON && options.CSV {
+	if (options.JSON && options.CSV) || (options.CSV && options.Mysql != "") {
 		return errTwoOutputMode
 	}
 

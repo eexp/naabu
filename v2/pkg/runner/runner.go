@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/projectdiscovery/retryablehttp-go"
 	"math/big"
 	"net"
 	"net/http"
@@ -17,11 +18,11 @@ import (
 	"time"
 
 	"github.com/Mzack9999/gcache"
+	"github.com/eexp/dnsx/libs/dnsx"
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/blackrock"
 	"github.com/projectdiscovery/clistats"
-	"github.com/projectdiscovery/dnsx/libs/dnsx"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/naabu/v2/pkg/port"
@@ -30,7 +31,6 @@ import (
 	"github.com/projectdiscovery/naabu/v2/pkg/result"
 	"github.com/projectdiscovery/naabu/v2/pkg/scan"
 	"github.com/projectdiscovery/ratelimit"
-	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/uncover/sources/agent/shodanidb"
 	fileutil "github.com/projectdiscovery/utils/file"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -225,6 +225,16 @@ func (r *Runner) onReceive(hostResult *result.HostResult) {
 						csvHeaderEnabled = false
 					}
 					writeCSVRow(data, writer)
+				} else if r.options.Mysql != "" {
+					//err := InsertSingleRecordToMysql(
+					//	data.Host, data.IP, data.Port, data.Protocol,
+					//	fmt.Sprintf("%t", data.TLS), data.CDNName, data.IsCDNIP,
+					//	data.TimeStamp, r.options.Mysqldb,
+					//)
+					//if err != nil {
+					//	gologger.Error().Msgf("could not write to database: %v", err)
+					//}
+					//buffer.Write([]byte(fmt.Sprintf("%s:%d\n", data.Host, data.Port)))
 				}
 			}
 		}
@@ -956,6 +966,13 @@ func (r *Runner) handleOutput(scanResults *result.Result) {
 				}
 				isCDNIP, cdnName, _ := r.scanner.CdnCheck(hostResult.IP)
 				gologger.Info().Msgf("Found %d ports on host %s (%s)\n", len(hostResult.Ports), host, hostResult.IP)
+				//mysql output
+				if r.options.Mysql != "" {
+					err = WriteMysqlOutput(host, hostResult.IP, hostResult.Ports, r.options.OutputCDN, isCDNIP, cdnName, r.options.Mysqldb)
+					if err != nil {
+						gologger.Error().Msgf("Could not write results to file Mysql for %s: %s\n", host, err)
+					}
+				}
 				// file output
 				if file != nil {
 					if r.options.JSON {
@@ -996,7 +1013,7 @@ func (r *Runner) handleOutput(scanResults *result.Result) {
 				isCDNIP, cdnName, _ := r.scanner.CdnCheck(hostIP)
 				gologger.Info().Msgf("Found alive host %s (%s)\n", host, hostIP)
 				// console output
-				if r.options.JSON || r.options.CSV {
+				if r.options.JSON || r.options.CSV || r.options.Mysql != "" {
 					data := &Result{IP: hostIP, TimeStamp: time.Now().UTC()}
 					if r.options.OutputCDN {
 						data.IsCDNIP = isCDNIP
@@ -1019,8 +1036,11 @@ func (r *Runner) handleOutput(scanResults *result.Result) {
 					}
 				}
 				//mysql output
-				if r.options.CSV {
-
+				if r.options.Mysql != "" {
+					err = WriteMysqlOutput(host, hostIP, nil, r.options.OutputCDN, isCDNIP, cdnName, r.options.Mysqldb)
+					if err != nil {
+						gologger.Error().Msgf("Could not write results to file Mysql for %s: %s\n", host, err)
+					}
 				}
 				// file output
 				if file != nil {
