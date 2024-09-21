@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.21
+        working-directory: v2/cmd/naabu/
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
