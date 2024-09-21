@@ -1,0 +1,18 @@
+project_name: naabu
+builds:
+  - id: naabu
+    dir: v2/cmd/naabu
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go # 确保这个路径指向你的 main.go 文件
+
+archives:
+  - format: tar.gz
+    files:
+      - LICENSE
+      - README.md
